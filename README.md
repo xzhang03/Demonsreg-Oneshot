@@ -1,2 +1,2 @@
 # Demonsreg-Oneshot
-A fast implimentation of demons reg for Andermann Lab
+A fast implementation of demons reg for Andermann Lab
