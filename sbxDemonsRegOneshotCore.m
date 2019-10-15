@@ -116,7 +116,7 @@ end
 
 % Data2 is a large variable
 if p.ref_downsample_xy > 1
-    clear Data2;
+    clear data2;
 end
 
 %% Apply the warp to original movie
