@@ -73,9 +73,11 @@ if exist(refname, 'file') && p.reuseref
 else
     % Calculate ref fresh
     fprintf('Calculating reference image...')
+    tic;
     ref = sbxAlignTargetCore(sbxpaths{p.runs == p.target}, p.pmt, p.ref_downsample_xy,...
         p.refoffset, p.refsize, p.edges);
-    fprintf(' Done. \n')
+    t = toc;
+    fprintf(' Done. Elapsed time: %i seconds.\n', round(t));
     writetiff(ref, refname, class(ref));
 end
 
@@ -101,14 +103,17 @@ for i = 1:length(sbxpaths)
     
     % Initialize registered data (using the grid file xx to get size)
     fprintf('Initializing array...')
+    tic;
     data_reg = uint16(zeros(size(xx)));
     data_reg = repmat(data_reg, [1, 1, nframes]);
-    fprintf(' Done. \n')
+    t = toc;
+    fprintf(' Done. Elapsed time: %i seconds.\n', round(t));
     
     % Initialize a cell for registered data
     data_reg_cell = cell(nchunks, 1);
     
     fprintf('Parallel registration...')
+    tic;
     % Parallel processing
     parfor c = 1 : nchunks
         % savepath for warp files
@@ -122,10 +127,12 @@ for i = 1:length(sbxpaths)
             'medfilt2size', p.medfilt2size, 'binbeforehighpassnorm', p.binbeforehighpassnorm,...
             'highpassnorm', p.highpassnorm, 'edges', p.edges));
     end
-    fprintf(' Done. \n')
+    t = toc;
+    fprintf(' Done. Elapsed time: %i seconds.\n', round(t));
     
     % Reconstruct image stack
     fprintf('Reconstruct image stack...')
+    tic;
     for c = 1 : nchunks
         % time indices
         i_start = (c-1) * p.chunksize + 1;
@@ -137,10 +144,10 @@ for i = 1:length(sbxpaths)
     end
     % Free memory
     clear data_reg_cell
-    fprintf(' Done. \n')
+    t = toc;
+    fprintf(' Done. Elapsed time: %i seconds.\n', round(t));
     
     fprintf('Saving final stack...')
-    
     % Save
     if p.saveastiff
         writetiff(data_reg,[outpaths{i}(1:end-7), '.tif'], 'double');  
