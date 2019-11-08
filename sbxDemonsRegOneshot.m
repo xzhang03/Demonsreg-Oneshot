@@ -33,6 +33,9 @@ function sbxDemonsRegOneshot(mouse, date, varargin)
     addOptional(p, 'savewarp', true); % Save warp parameteres
     addOptional(p, 'reuseref', false); % Use pre-calculated ref if can find it (must be the right size).
     
+    % Post processing variables
+    addOptional(p, 'posthocmedian', false); % Perform a sliding-window median after registration
+    addOptional(p, 'posthocmedianwindow', 10); % Number of frames as the window for posthoc median filter
     
     % Unpack if needed
     if iscell(varargin) && size(varargin,1) * size(varargin,2) == 1
@@ -147,6 +150,18 @@ for i = 1:length(sbxpaths)
     t = toc;
     fprintf(' Done. Elapsed time: %i seconds.\n', round(t));
     
+    % Post hoc median filter
+    if p.posthocmedian
+        fprintf('Posthoc median filter...')
+        tic;
+        
+        % filter
+        data_reg = movmedian(data_reg, p.posthocmedianwindow, 3);
+        
+        t = toc;
+        fprintf(' Done. Elapsed time: %i seconds.\n', round(t));
+    end
+    
     fprintf('Saving final stack...')
     % Save
     if p.saveastiff
@@ -154,6 +169,7 @@ for i = 1:length(sbxpaths)
     else
         sbxWrite(outpaths{i}, data_reg, info, p.force, true);
     end
+    fprintf(' Done. \n');
 end
 
 
