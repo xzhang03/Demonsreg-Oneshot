@@ -52,7 +52,7 @@ if isempty(p.target), p.target = p.runs(1); end
 % sbx paths
 sbxpaths = cell(length(p.runs),1);
 for i = 1 : length(p.runs)
-    sbxpaths{i} = sbxPath(mouse, date, p.runs(i),'xyreg', 'server', p.server, 'pmt', p.pmt);
+    sbxpaths{i} = sbxPath(mouse, date, p.runs(i),p.movtype, 'server', p.server, 'pmt', p.pmt);
 end
 
 % ref paths
