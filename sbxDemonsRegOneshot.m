@@ -1,6 +1,7 @@
 function sbxDemonsRegOneshot(mouse, date, varargin)
 % sbxDemonsRegOneshot is a onestep application of demonsreg, with the
 % intention of improving speed.
+% -SZ
 
     p = inputParser;
 
@@ -56,7 +57,12 @@ for i = 1 : length(p.runs)
 end
 
 % ref paths
-[rpath, fname] = fileparts(sbxpaths{p.runs == p.target});        
+if any(p.runs == p.target)
+    [rpath, fname] = fileparts(sbxpaths{p.runs == p.target});
+else
+    sbxtarget = sbxPath(mouse, date, p.target,p.movtype, 'server', p.server, 'pmt', p.pmt);
+    [rpath, fname] = fileparts(sbxtarget);
+end
 regpath = [fileparts(rpath) '\reg_demonsreg'];
 refname = [regpath '\' fname '_demonsreg.tif'];
 
