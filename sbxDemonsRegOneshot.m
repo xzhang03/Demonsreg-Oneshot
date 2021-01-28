@@ -69,7 +69,14 @@ refname = [regpath '\' fname '_demonsreg.tif'];
 % output paths
 outpaths = cell(length(p.runs),1);
 for i = 1 : length(p.runs)
-    outpaths{i} = sprintf('%s_demonsreg-%i.sbxreg', sbxpaths{i}(1:end-7), p.pmt);
+    switch p.movtype
+        case 'xyreg'
+            outpaths{i} = sprintf('%s_demonsreg-%i.sbxreg', sbxpaths{i}(1:end-7), p.pmt);
+        case 'sbxreg'
+            outpaths{i} = sprintf('%s_demonsreg-%i.sbxreg', sbxpaths{i}(1:end-7), p.pmt);
+        case 'sbx'
+            outpaths{i} = sprintf('%s_xyreg_demonsreg-%i.sbxreg', sbxpaths{i}(1:end-4), p.pmt);
+    end
 end
 
 %% Target
