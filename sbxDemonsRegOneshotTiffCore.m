@@ -1,53 +1,35 @@
-function data_reg = ...
-    sbxDemonsRegOneshotCore(mov_path, savepath, startframe, nframes, ref,...
+function data_reg = sbxDemonsRegOneshotTiffCore(data, savepath, ref,...
     meshxx, meshyy, varargin)
-%% sbxDemonsRegOneshotCore is the core of the namesake function, aiming to improve speed
-    
-    p = inputParser;
-    addOptional(p, 'pmt', 0, @isnumeric);  % REMEMBER, PMT is 0-indexed   
-    addOptional(p, 'ref_downsample_xy', 1, @isnumeric);
-    addOptional(p, 'hp_norm_sigmas', [8, 30], @isnumeric); % Sigma for gaussian fit
-    addOptional(p, 'savewarp', true);
-    addOptional(p, 'medfilt2size', [2 2]); % Neighbor area for 2D median filter
-    addOptional(p, 'highpassnorm', true); % Use highpass filter and local normalization before registration.
-    addOptional(p, 'binbeforehighpassnorm', false); % Bin image before applying spatial filters.
-                                                    % Recommended for
-                                                    % imaging systems with
-                                                    % magnification (e.g.,
-                                                    % GRIN doublets).
-    addOptional(p, 'edges', [0 0 0 0]); % Use edges to the processing (needed for bidirectional scanning).
-    parse(p, varargin{:});
-    
-    % Unpack if needed
-    if iscell(varargin) && size(varargin,1) * size(varargin,2) == 1
-        varargin = varargin{:};
-    end
-    
-    parse(p, varargin{:});
-    p = p.Results;
+%sbxDemonsRegOneshotTiffCore is the core of the namesake function, aiming to improve speed
+% This is the tiff version of the code. - SZ
 
-%% Filter ref
-% Parameters
-n = p.hp_norm_sigmas(1);
-m = p.hp_norm_sigmas(2);
+%% Parsing
+    
+p = inputParser;
+addOptional(p, 'ref_downsample_xy', 1, @isnumeric);
+addOptional(p, 'hp_norm_sigmas', [8, 30], @isnumeric); % Sigma for gaussian fit
+addOptional(p, 'savewarp', true);
+addOptional(p, 'medfilt2size', [2 2]); % Neighbor area for 2D median filter
+addOptional(p, 'highpassnorm', true); % Use highpass filter and local normalization before registration.
+addOptional(p, 'binbeforehighpassnorm', false); % Bin image before applying spatial filters.
+                                                % Recommended for
+                                                % imaging systems with
+                                                % magnification (e.g.,
+                                                % GRIN doublets).
+addOptional(p, 'edges', [0 0 0 0]); % Use edges to the processing (needed for bidirectional scanning).
+parse(p, varargin{:});
 
-% Median filter
-if ~isempty(p.medfilt2size)
-    ref = medfilt2(ref, p.medfilt2size, 'symmetric');
+% Unpack if needed
+if iscell(varargin) && size(varargin,1) * size(varargin,2) == 1
+    varargin = varargin{:};
 end
 
-if p.highpassnorm
-    % Highpass and normalized
-    ref_prime = single(ref)-single(imgaussfilt(double(ref),n));
-    ref = ref_prime ./ (imgaussfilt(ref_prime.^2,m) .^ (1/2));
+parse(p, varargin{:});
+p = p.Results;
 
-    ref(isnan(ref)) = 0;
-end
 
 %% Read in data
-% Read in
-data = sbxReadPMT(mov_path, startframe - 1, nframes, p.pmt);
-
+% Class of data
 c = class(data);
 
 %% Make a copy for pre-processing while keeping the original
@@ -69,8 +51,8 @@ if p.highpassnorm
         if ~isempty(p.medfilt2size)
             data2(:,:,i) = medfilt2(data2(:,:,i), p.medfilt2size, 'symmetric');
         end
-        f_prime = data2(:,:,i) - imgaussfilt(single(data2(:,:,i)),n);
-        g_prime = f_prime ./ (imgaussfilt(f_prime.^2,m).^(1/2));
+        f_prime = data2(:,:,i) - imgaussfilt(data2(:,:,i),p.hp_norm_sigmas(1));
+        g_prime = f_prime ./ (imgaussfilt(f_prime.^2,p.hp_norm_sigmas(2)).^(1/2));
 
         g_prime(isnan(g_prime)) = 0;
 
@@ -131,7 +113,7 @@ for i = 1 : size(data, 3)
 end
 
 % Cast if needed
-if ~strcmp(class(data_reg), class(data))
+if ~strcmp(class(data_reg), c)
     data_reg = cast(data_reg, c);
 end
 
