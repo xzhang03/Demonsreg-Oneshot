@@ -186,7 +186,7 @@ for i = 1:length(tiffpaths)
     fprintf('Parallel registration...')
     tic;
     % Parallel processing
-    for c = 1 : nchunks
+    parfor c = 1 : nchunks
         % savepath for warp files
         savepath = [regpath '\Transforms\' fname '_Dtransform_' sprintf('%02d', c)];
         
