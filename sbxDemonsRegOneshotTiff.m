@@ -93,6 +93,8 @@ for i = 1 : length(p.runs)
             outpaths{i} = sprintf('%s_demonsreg-%i.tif', tiffpaths{i}(1:end-6), p.pmt);
         case 'OTtiff_demonsreg'
             outpaths{i} = sprintf('%s_demonsreg-%i.tif', tiffpaths{i}(1:end-10), p.pmt);
+        case 'tiff_demonsreg'
+            outpaths{i} = sprintf('%s_demonsreg-%i.tif', tiffpaths{i}(1:end-6), p.pmt);
     end
 end
 
