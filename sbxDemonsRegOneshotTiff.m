@@ -40,6 +40,11 @@ function sbxDemonsRegOneshotTiff(mouse, date, varargin)
     addOptional(p, 'posthocmedian', false); % Perform a sliding-window median after registration
     addOptional(p, 'posthocmedianwindow', 10); % Number of frames as the window for posthoc median filter
     
+    % imdemonreg variables
+    addOptional(p, 'itr', [32 16 8 4]); % Iterations at each level
+    addOptional(p, 'PyramidLevels', 4); % Number of levels
+    addOptional(p, 'AccumulatedFieldSmoothing', 2.5); % Gaussian size for smoothing
+
     % Unpack if needed
     if iscell(varargin) && size(varargin,1) * size(varargin,2) == 1
         varargin = varargin{:};
@@ -198,7 +203,8 @@ for i = 1:length(tiffpaths)
             min(c * p.chunksize, sz(3))), savepath, ref, xx, yy, 'ref_downsample_xy', p.binxy,...
             'hp_norm_sigmas', p.hp_norm_sigmas, 'savewarp', p.savewarp, ...
             'medfilt2size', p.medfilt2size, 'binbeforehighpassnorm', p.binbeforehighpassnorm,...
-            'highpassnorm', p.highpassnorm, 'edges', p.edges));
+            'highpassnorm', p.highpassnorm, 'edges', p.edges, 'itr', p.itr, 'PyramidLevels', p.PyramidLevels,...
+            'AccumulatedFieldSmoothing', p.AccumulatedFieldSmoothing));
     end
     t = toc;
     fprintf(' Done. Elapsed time: %i seconds.\n', round(t));
