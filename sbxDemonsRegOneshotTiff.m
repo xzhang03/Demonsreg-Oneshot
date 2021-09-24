@@ -35,6 +35,8 @@ function sbxDemonsRegOneshotTiff(mouse, date, varargin)
   
     % Efficiency variables
     addOptional(p, 'savewarp', true); % Save warp parameteres
+    addOptional(p, 'parfor', true);
+    addOptional(p, 'nworkers', 32); % Max number of workers
     
     % Post processing variables
     addOptional(p, 'posthocmedian', false); % Perform a sliding-window median after registration
@@ -57,7 +59,7 @@ function sbxDemonsRegOneshotTiff(mouse, date, varargin)
 if isempty(p.target), p.target = p.runs(1); end
     
 % Parpool
-if isempty(gcp('nocreate'))
+if isempty(gcp('nocreate')) && p.parfor
     parpool();
 end
 
@@ -192,8 +194,17 @@ for i = 1:length(tiffpaths)
     
     fprintf('Parallel registration...')
     tic;
+    
+    % Parallel or not
+    if p.parfor
+        M = p.nworkers;
+    else
+        M = 0;
+    end
+    
     % Parallel processing
-    parfor c = 1 : nchunks
+%     for c = 1 : nchunks
+    parfor (c = 1 : nchunks, M)
         % savepath for warp files
         savepath = [regpath '\Transforms\' fname '_Dtransform_' sprintf('%02d', c)];
         
@@ -205,6 +216,10 @@ for i = 1:length(tiffpaths)
             'medfilt2size', p.medfilt2size, 'binbeforehighpassnorm', p.binbeforehighpassnorm,...
             'highpassnorm', p.highpassnorm, 'edges', p.edges, 'itr', p.itr, 'PyramidLevels', p.PyramidLevels,...
             'AccumulatedFieldSmoothing', p.AccumulatedFieldSmoothing));
+        
+        if ~p.parfor
+            fprintf('Chunk %i/%i registered.\n', c, nchunks);
+        end
     end
     t = toc;
     fprintf(' Done. Elapsed time: %i seconds.\n', round(t));
@@ -220,6 +235,9 @@ for i = 1:length(tiffpaths)
         % Reconstruct
         data_reg(:,:,i_start : i_end) = data_reg_cell{c};
         
+        if ~p.parfor
+            fprintf('Chunk %i/%i reconstructed.\n', c, nchunks);
+        end
     end
     % Free memory
     clear data_reg_cell
