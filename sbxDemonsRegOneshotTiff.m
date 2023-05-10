@@ -46,6 +46,11 @@ function sbxDemonsRegOneshotTiff(mouse, date, varargin)
     addOptional(p, 'itr', [32 16 8 4]); % Iterations at each level
     addOptional(p, 'PyramidLevels', 4); % Number of levels
     addOptional(p, 'AccumulatedFieldSmoothing', 2.5); % Gaussian size for smoothing
+    
+    % Export segmentation file
+    addOptional(p, 'toseg', false);
+    addOptional(p, 'movsize', 500, @isnumeric);  % Set the number of frames from which we make the reference
+    addOptional(p, 'movoffset', 500, @isnumeric);  % The offset in frames for the reference image, accounts for weirdness in the first few frames
 
     % Unpack if needed
     if iscell(varargin) && size(varargin,1) * size(varargin,2) == 1
@@ -101,6 +106,8 @@ for i = 1 : length(p.runs)
         case 'OTtiff_demonsreg'
             outpaths{i} = sprintf('%s_demonsreg-%i.tif', tiffpaths{i}(1:end-10), p.pmt);
         case 'tiff_demonsreg'
+            outpaths{i} = sprintf('%s_demonsreg-%i.tif', tiffpaths{i}(1:end-6), p.pmt);
+        case 'tiff_xyreg'
             outpaths{i} = sprintf('%s_demonsreg-%i.tif', tiffpaths{i}(1:end-6), p.pmt);
     end
 end
@@ -262,7 +269,26 @@ for i = 1:length(tiffpaths)
     writetiff(data_reg, outpaths{i});
     save(matname, '-v7.3', 'sz', 'p', 'ref');
 
+    % Segmentation file
+    if p.toseg
+        % meantifpath
+        [outputfolder, ~, ~] = fileparts(outpaths{i});
+        if ~strcmpi(p.movtype(1:2), 'OT')
+            meanpath = fullfile(outputfolder, sprintf('%s_%s_%03d_toseg.tif', mouse, date, p.runs(i)));
+        else
+            meanpath = fullfile(outputfolder, sprintf('%s_%s_%03d_OT%i_toseg.tif', mouse, date, p.runs(i),p.optotune));
+        end
+        meanim = median(data_reg(:,:,p.movoffset : p.movoffset + p.movsize - 1),3);
+        meanim = double(meanim);
+        meanim = imresize(meanim,1/p.binxy);
+        
+        meanim = medfilt2(meanim, p.medfilt2size, 'symmetric');
+        meanim_prime = meanim - imgaussfilt(double(meanim),p.hp_norm_sigmas(1));
+        ln_meanim = meanim_prime ./ (imgaussfilt(meanim_prime.^2,p.hp_norm_sigmas(2)) .^ (1/2));
+        ln_meanim(isnan(ln_meanim)) = 0;
     
+        writetiff(ln_meanim, meanpath);
+    end
     fprintf('Saving done. \n');
 end
 
