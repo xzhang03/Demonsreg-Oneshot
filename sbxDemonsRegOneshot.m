@@ -1,6 +1,6 @@
 function sbxDemonsRegOneshot(mouse, date, varargin)
 % sbxDemonsRegOneshot is a onestep application of demonsreg, with the
-% intention of improving speed.
+% intention of improving speed. 
 % -SZ
 
     p = inputParser;
@@ -33,10 +33,16 @@ function sbxDemonsRegOneshot(mouse, date, varargin)
     % Efficiency variables
     addOptional(p, 'savewarp', true); % Save warp parameteres
     addOptional(p, 'reuseref', false); % Use pre-calculated ref if can find it (must be the right size).
+    addOptional(p, 'nworkers', 32); % Max number of workers
     
     % Post processing variables
     addOptional(p, 'posthocmedian', false); % Perform a sliding-window median after registration
     addOptional(p, 'posthocmedianwindow', 10); % Number of frames as the window for posthoc median filter
+    
+    % imdemonreg variables
+    addOptional(p, 'itr', [32 16 8 4]); % Iterations at each level
+    addOptional(p, 'PyramidLevels', 4); % Number of levels
+    addOptional(p, 'AccumulatedFieldSmoothing', 2.5); % Gaussian size for smoothing
     
     % Unpack if needed
     if iscell(varargin) && size(varargin,1) * size(varargin,2) == 1
@@ -131,7 +137,7 @@ for i = 1:length(sbxpaths)
     fprintf('Parallel registration...')
     tic;
     % Parallel processing
-    parfor c = 1 : nchunks
+    parfor (c = 1 : nchunks, p.nworkers)
         % savepath for warp files
         savepath = [regpath '\Transforms\' fname '_Dtransform_' sprintf('%02d', c)];
         
@@ -141,7 +147,8 @@ for i = 1:length(sbxpaths)
             p.chunksize, ref, xx, yy, 'pmt', p.pmt, 'ref_downsample_xy', p.ref_downsample_xy,...
             'hp_norm_sigmas', p.hp_norm_sigmas, 'savewarp', p.savewarp, ...
             'medfilt2size', p.medfilt2size, 'binbeforehighpassnorm', p.binbeforehighpassnorm,...
-            'highpassnorm', p.highpassnorm, 'edges', p.edges));
+            'highpassnorm', p.highpassnorm, 'edges', p.edges, 'itr', p.itr, 'PyramidLevels', p.PyramidLevels,...
+            'AccumulatedFieldSmoothing', p.AccumulatedFieldSmoothing));
     end
     t = toc;
     fprintf(' Done. Elapsed time: %i seconds.\n', round(t));
@@ -178,7 +185,7 @@ for i = 1:length(sbxpaths)
     fprintf('Saving final stack...')
     % Save
     if p.saveastiff
-        writetiff(data_reg,[outpaths{i}(1:end-7), '.tif'], 'double');  
+        writetiff(data_reg,[outpaths{i}(1:end-7), '.tif'], 'uint16');  
     else
         sbxWrite(outpaths{i}, data_reg, info, p.force, true);
     end

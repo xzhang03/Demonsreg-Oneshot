@@ -17,6 +17,12 @@ addOptional(p, 'binbeforehighpassnorm', false); % Bin image before applying spat
                                                 % magnification (e.g.,
                                                 % GRIN doublets).
 addOptional(p, 'edges', [0 0 0 0]); % Use edges to the processing (needed for bidirectional scanning).
+
+% imdemonreg variables
+addOptional(p, 'itr', [32 16 8 4]); % Iterations at each level
+addOptional(p, 'PyramidLevels', 4); % Number of levels
+addOptional(p, 'AccumulatedFieldSmoothing', 2.5); % Gaussian size for smoothing
+
 parse(p, varargin{:});
 
 % Unpack if needed
@@ -75,8 +81,9 @@ D_combined = zeros(size(data2,1), size(data2,2), size(data2,3) * 2);
 % Get the D tensor
 for  i = 1:size(data2,3)
     % Demons reg
-    [D,~] = imregdemons(data2(:,:,i), ref, [32 16 8 4],...
-            'AccumulatedFieldSmoothing',2.5,'PyramidLevels',4,'DisplayWaitbar',false);
+    [D,~] = imregdemons(data2(:,:,i), ref, p.itr,...
+            'AccumulatedFieldSmoothing', p.AccumulatedFieldSmoothing,...
+            'PyramidLevels',p.PyramidLevels,'DisplayWaitbar',false);
     
     D_combined(:, :, i*2-1 : i*2) = D; 
 end
