@@ -209,6 +209,8 @@ if p.toseg
     ln_meanim(isnan(ln_meanim)) = 0;
 
     toseg = ln_meanim;
+else
+    toseg = [];
 end
 
 end
