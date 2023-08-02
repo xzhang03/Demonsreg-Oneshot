@@ -209,6 +209,16 @@ for i = 1:length(tiffpaths)
         M = 0;
     end
     
+    % Slice data
+    fprintf('Slicing data...')
+    tic;
+    for c = 1 : nchunks
+        data_reg_cell{c} = im(:,:,(c-1) * p.chunksize + 1 :...
+            min(c * p.chunksize, sz(3)));
+    end
+    t = toc;
+    fprintf(' Done. Elapsed time: %i seconds.\n', round(t));
+    
     % Parallel processing
 %     for c = 1 : nchunks
     parfor (c = 1 : nchunks, M)
@@ -217,8 +227,8 @@ for i = 1:length(tiffpaths)
         
         % Process data
         data_reg_cell{c} = ...
-            uint16(sbxDemonsRegOneshotTiffCore(im(:,:,(c-1) * p.chunksize + 1 :...
-            min(c * p.chunksize, sz(3))), savepath, ref, xx, yy, 'ref_downsample_xy', p.binxy,...
+            uint16(sbxDemonsRegOneshotTiffCore(data_reg_cell{c}, savepath,...
+            ref, xx, yy, 'ref_downsample_xy', p.binxy,...
             'hp_norm_sigmas', p.hp_norm_sigmas, 'savewarp', p.savewarp, ...
             'medfilt2size', p.medfilt2size, 'binbeforehighpassnorm', p.binbeforehighpassnorm,...
             'highpassnorm', p.highpassnorm, 'edges', p.edges, 'itr', p.itr, 'PyramidLevels', p.PyramidLevels,...
@@ -278,7 +288,7 @@ for i = 1:length(tiffpaths)
         else
             meanpath = fullfile(outputfolder, sprintf('%s_%s_%03d_OT%i_toseg.tif', mouse, date, p.runs(i),p.optotune));
         end
-        meanim = median(data_reg(:,:,p.movoffset : p.movoffset + p.movsize - 1),3);
+        meanim = median(data_reg(:,:,p.refoffset : p.refoffset + p.refsize - 1),3);
         meanim = double(meanim);
         meanim = imresize(meanim,1/p.binxy);
         
