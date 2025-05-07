@@ -10,7 +10,7 @@ function pvDemonsRegOneshotTiff(mouse, date, varargin)
     addOptional(p, 'server', '');  % Add in the server name as a string
     addOptional(p, 'runs', []);  % runs of the movie. Can be multiple
     addOptional(p, 'force', false);  % Overwrite files if they exist
-    addOptional(p, 'pmt', 0, @isnumeric);  % Which PMT to use for analysis, 0-green, 1-red
+    addOptional(p, 'pmt', [], @isnumeric);  % Which PMT to use for analysis, 0-green, 1-red
     addOptional(p, 'chunksize', 300); % Chunk size for parallel processing. Decrease if RAM is an issue
     
     % Plane level
@@ -65,6 +65,14 @@ function pvDemonsRegOneshotTiff(mouse, date, varargin)
 %% Input cleanup
 if isempty(p.target), p.target = p.runs(1); end
     
+% Fix pmts
+if isempty(p.pmt)
+    p.pmt = pvPMT(mouse, date, p.runs, 'server', p.server);
+    if length(p.pmt) > 1
+        error('More than 1 pmt detected, please specify');
+    end
+end
+
 % Parpool
 if isempty(gcp('nocreate')) && p.parfor
     parpool();
@@ -302,7 +310,7 @@ for i = 1:length(tiffpaths)
     if p.toseg
         % meantifpath
         [outputfolder, ~, ~] = fileparts(outpaths{i});
-        meanpath = fullfile(outputfolder, sprintf('%s_%s_%03d_toseg.tif', mouse, date, p.runs(i)));
+        meanpath = fullfile(outputfolder, sprintf('%s_%s-%03d_Ch%i_toseg.tif', mouse, date, p.runs(i), p.pmt));
         meanim = median(data_reg(:,:,p.refoffset : p.refoffset + p.refsize - 1),3);
         meanim = double(meanim);
         meanim = imresize(meanim,1/p.binxy);
