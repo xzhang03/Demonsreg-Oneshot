@@ -14,7 +14,7 @@ function pvDemonsRegOneshotTiff(mouse, date, varargin)
     addOptional(p, 'chunksize', 300); % Chunk size for parallel processing. Decrease if RAM is an issue
     
     % Plane level
-    addOptional(p, 'plane', 1); % Plane level
+    addOptional(p, 'planes', []); % Plane level
     
     % IO variables
     addOptional(p, 'movtype', 'xyreg');  % input type, can be xyreg, sbxreg, or sbx.
@@ -23,10 +23,11 @@ function pvDemonsRegOneshotTiff(mouse, date, varargin)
     % Image-processing variables
     addOptional(p, 'edges', [0 0 0 0]); % Edges of registration. Pixels outside the edges will not be registered
     addOptional(p, 'refsize', 500, @isnumeric);  % Set the number of frames from which we make the reference
-    addOptional(p, 'refoffset', 500, @isnumeric);  % The offset in frames for the reference image, accounts for weirdness in the first few frames
+    addOptional(p, 'refoffset', 100, @isnumeric);  % The offset in frames for the reference image, accounts for weirdness in the first few frames
     addOptional(p, 'binxy', [], @isnumeric);  % Pixels to downsample in xy, will be set to downsample_xy if empty
     addOptional(p, 'reuseref', true); % Reuse reference if can find it (must be the same size).
-    
+    addOptional(p, 'showref', true);
+
     % Rarely changed image-processing variables
     addOptional(p, 'medfilt2size', [2 2]); % Neighbor area for 2D median filter. Leave empty if no median filter
     addOptional(p, 'highpassnorm', true); % Use highpass filter and local normalization before registration.
@@ -53,6 +54,10 @@ function pvDemonsRegOneshotTiff(mouse, date, varargin)
     addOptional(p, 'toseg', false);
     addOptional(p, 'movsize', 500, @isnumeric);  % Set the number of frames from which we make the reference
     addOptional(p, 'movoffset', 500, @isnumeric);  % The offset in frames for the reference image, accounts for weirdness in the first few frames
+    
+    % Expoert to preview
+    addOptional(p, 'topreview', false);
+    addOptional(p, 'previewbin_xyt', [2 4]); %[xy t]
 
     % Unpack if needed
     if iscell(varargin) && size(varargin,1) * size(varargin,2) == 1
@@ -82,7 +87,7 @@ end
 % sbx paths
 tiffpaths = cell(length(p.runs),1);
 for i = 1 : length(p.runs)
-    tiffpaths{i} = pvPaths(mouse, date, p.runs(i), p.movtype, 'server', p.server, 'pmt', p.pmt, 'plane', p.plane);
+    tiffpaths{i} = pvPaths(mouse, date, p.runs(i), p.movtype, 'server', p.server, 'pmt', p.pmt, 'planes', p.planes);
 end
 
 % ref paths
@@ -192,6 +197,12 @@ for i = 1:length(tiffpaths)
         % Bin ref (post)
         if ~p.binbeforehighpassnorm && p.binxy > 1
             ref = binxy(ref, p.binxy);
+        end
+        
+        if p.showref
+            figure
+            imshow(ref, []);
+            title(sprintf('Iteration %i', iter));
         end
 
         % Parallel processing
@@ -305,6 +316,21 @@ for i = 1:length(tiffpaths)
     % Save
     writetiff(data_reg, outpaths{i});
     save(matname, '-v7.3', 'sz', 'p', 'ref');
+    
+    % Preview
+    if p.topreview
+        fprintf('Binning preview xy... ');
+        im_preview = binxy(data_reg, p.previewbin_xyt(1));
+        fprintf('Done. Elapsed time (s) = %i\n', round(toc));
+        
+        fprintf('Binning preview t... ');
+        im_preview = bint(im_preview, p.previewbin_xyt(2));
+        fprintf('Done. Elapsed time (s) = %i\n', round(toc));
+        
+        % File name
+        previewfn_out = sprintf('%s_preview.tif', outpaths{i}(1:end-4));
+        writetiff(im_preview, previewfn_out);
+    end
 
     % Segmentation file
     if p.toseg
