@@ -45,6 +45,10 @@ function pvDemonsRegOneshotTiff(mouse, date, varargin)
     addOptional(p, 'posthocmedian', false); % Perform a sliding-window median after registration
     addOptional(p, 'posthocmedianwindow', 10); % Number of frames as the window for posthoc median filter
     
+    % PCA cleaning
+    addOptional(p, 'PCAclean', false);
+    addOptional(p, 'PCs_clean', 2:30);
+
     % imdemonreg variables
     addOptional(p, 'itr', [32 16 8 4]); % Iterations at each level
     addOptional(p, 'PyramidLevels', 4); % Number of levels
@@ -137,7 +141,7 @@ elseif ~any(istarget)
     clear refstack
     
     t = toc;
-    fprintf('Ref calculation done. Elapsed time: %i seconds.\n', round(t));
+    fprintf('Ref calculation done. %i seconds.\n', round(t));
     writetiff(ref, refname); % Write unbinned because sometimes binning happens after local normalization
 end
 
@@ -228,7 +232,7 @@ for i = 1:length(tiffpaths)
             data_reg = uint16(zeros(sz(1), sz(2)));
             data_reg = repmat(data_reg, [1, 1, sz(3)]);
             t = toc;
-            fprintf(' Done. Elapsed time: %i seconds.\n', round(t));
+            fprintf(' Done. %i seconds.\n', round(t));
 
             % Initialize a cell for registered data
             data_reg_cell = cell(nchunks, 1);
@@ -249,7 +253,7 @@ for i = 1:length(tiffpaths)
                 min(c * p.chunksize, sz(3)));
         end
         t = toc;
-        fprintf(' Done. Elapsed time: %i seconds.\n', round(t));
+        fprintf(' Done. %i seconds.\n', round(t));
         
         fprintf('Parallel registration...')
         tic
@@ -273,7 +277,7 @@ for i = 1:length(tiffpaths)
             end
         end
         t = toc;
-        fprintf(' Done. Elapsed time: %i seconds.\n', round(t));
+        fprintf(' Done. %i seconds.\n', round(t));
 
         % Reconstruct image stack
         fprintf('Reconstruct image stack...')
@@ -295,7 +299,7 @@ for i = 1:length(tiffpaths)
     % Free memory
     clear data_reg_cell
     t = toc;
-    fprintf(' Done. Elapsed time: %i seconds.\n', round(t));
+    fprintf(' Done. %i seconds.\n', round(t));
     
     fprintf('[Output]\n');
 
@@ -308,9 +312,23 @@ for i = 1:length(tiffpaths)
         data_reg = movmedian(data_reg, p.posthocmedianwindow, 3);
         
         t = toc;
-        fprintf(' Done. Elapsed time: %i seconds.\n', round(t));
+        fprintf(' Done. %i seconds.\n', round(t));
     end
     
+    % PCA clean
+    if p.PCAclean
+        fprintf('PCA cleaning...')
+        tic;
+        
+        % PCA clean
+        dataclass = class(data_reg);
+        data_reg = double(data_reg);
+        data_reg = PCAClean(data_reg, p.PCs_clean);
+        data_reg = cast(data_reg, dataclass);
+        
+        t = toc;
+        fprintf(' Done. %i seconds.\n', round(t));
+    end
     fprintf('Saving final stack...')
     
     % Save
@@ -320,10 +338,12 @@ for i = 1:length(tiffpaths)
     % Preview
     if p.topreview
         fprintf('Binning preview xy... ');
+        tic;
         im_preview = binxy(data_reg, p.previewbin_xyt(1));
         fprintf('Done. Elapsed time (s) = %i\n', round(toc));
         
         fprintf('Binning preview t... ');
+        tic;
         im_preview = bint(im_preview, p.previewbin_xyt(2));
         fprintf('Done. Elapsed time (s) = %i\n', round(toc));
         
